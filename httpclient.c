@@ -17,7 +17,7 @@
 /******************************************** 
 功能：搜索字符串右边起的第一个匹配字符 
 ********************************************/
-char* Rstrchr(char* s, char x)    
+const char* Rstrchr(const char* s,const char x)     
 { 
     int i = strlen(s); 
     if(!(*s)) 
@@ -147,7 +147,7 @@ int   main(int   argc,   char   *argv[])
     char host_file[1024] = ""; 
     FILE *fp; 
     char request[1024] = ""; 
-    int send = 0;
+    int send_num = 0;
     int totalsend = 0; 
     int i = 0; 
     char *pt;
@@ -158,15 +158,15 @@ int   main(int   argc,   char   *argv[])
         fprintf(stderr, "Usage:%s   web-address\a\n ",argv[0]); 
         exit(1); 
     } 
-    printf( "parameter.1 is: %s\n ", argv[1]); 
+    /* printf( "parameter.1 is: %s\n ", argv[1]); */ 
     //ToLowerCase(argv[1]);/*将参数转换为全小写*/ 
     //printf( "lowercase   parameter.1   is:   %s\n ",   argv[1]); 
  
     GetHost(argv[1], host_addr, host_file, &portnumber);/*分析网址、端口、文件名等*/
-    printf( "webhost:%s\n ", host_addr); 
-    printf( "hostfile:%s\n ", host_file); 
-    printf( "portnumber:%d\n\n ", portnumber); 
-
+    /* printf( "webhost:%s\n ", host_addr); */ 
+    /* printf( "hostfile:%s\n ", host_file); */ 
+    /* printf( "portnumber:%d\n\n ", portnumber); */ 
+    //gethostbyname 目的是用于DNS查询，但该函数存在性能瓶颈,多线程的时候容易发生阻塞
     if((host=gethostbyname(host_addr)) == NULL)/*取得主机IP地址*/
     { 
         fprintf(stderr, "Gethostname   error,  ---  %s\n ",   strerror(errno)); 
@@ -197,7 +197,7 @@ int   main(int   argc,   char   *argv[])
 User-Agent:   Mozilla/4.0   (compatible;   MSIE   5.01;   Windows   NT   5.0)\r\n\ 
 Host:   %s:%d\r\nConnection:   Close\r\n\r\n ", host_file, host_addr, portnumber); 
      
-    printf( "%s\n", request);/*准备request，将要发送给主机*/
+   // printf( "%s\n", request);/*准备request，将要发送给主机*/
  
     /*取得真实的文件名*/
     if(host_file && *host_file)     
@@ -210,39 +210,41 @@ Host:   %s:%d\r\nConnection:   Close\r\n\r\n ", host_file, host_addr, portnumber
     }
  
     /*发送http请求request*/
-    send = 0;
+    send_num = 0;
     totalsend = 0; 
     nbytes=strlen(request); 
     while(totalsend < nbytes)  
     { 
-        send = write(sockfd, request+totalsend, nbytes-totalsend); 
-        if(send == -1)     
+       // send = write(sockfd, request+totalsend, nbytes-totalsend); 
+        send_num = send(sockfd, request+totalsend, nbytes-totalsend,0); 
+        if(send_num == -1)     
         {
             printf( "send error!%s\n ", strerror(errno));
             exit(0);
         } 
-        totalsend += send; 
-        printf("%d bytes send OK!\n ", totalsend); 
+        totalsend += send_num; 
+        /* printf("%d bytes send OK!\n ", totalsend); */ 
     } 
  
-    printf( "\nThe   following   is   the   response   header:\n "); 
+    /* printf( "\nThe   following   is   the   response   header:\n "); */ 
     i=0; 
     /*   连接成功了，接收http响应，response   */
     while((nbytes=read(sockfd,buffer,1))==1) 
     {
-        //4个\r或\n 为分界
-        /* if(i < 4) */    
-        /* { */ 
-        /*     if(buffer[0] == '\r' || buffer[0] == '\n') */     
-        /*     { */
-        /*         i++; */ 
-        /*     } */
-        /*     else */  
-        /*     { */
-        /*         i = 0; */ 
-        /*     } */
+        //4个\r或\n 为分界  跳过头
+        if(i < 4)    
+        { 
+            if(buffer[0] == '\r' || buffer[0] == '\n')     
+            {
+                i++; 
+            }
+            else  
+            {
+                i = 0; 
+            }
+            continue ;
         //    printf( "%c", buffer[0]);/*把http头信息打印在屏幕上*/ 
-        /* } */ 
+        } 
 
          printf( "%c", buffer[0]);/*把http头信息打印在屏幕上*/
     } 
